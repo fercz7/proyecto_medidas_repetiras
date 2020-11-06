@@ -1,0 +1,63 @@
+---
+title: "medidas repetidas"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r leer base}
+library(tidyr)
+library(dplyr)
+load("germinacion.Rdata")
+```
+
+Se usa un modelo normal ya que si se analiza la alturo o el diametro, son medidas continuas por lo que un modelo con respuesta condicional normal es adecuado
+
+```{r ver correlacion visualmente}
+beta0=beta1=c()
+ind = levels( base$medida)
+for(i in 1: length( ind) ) {
+  dat = base %>% filter( medida == ind[i]) 
+  mod = lm( altura ~ n_med, data = dat)
+  beta0[i] = mod$coef[1]
+  beta1[i] = mod$coef[2]
+}
+bet0=bet1=c()
+for(i in 1: length( ind) ) {
+  dat = base %>% filter( medida == ind[i]) 
+  mod = lm( diametro ~ n_med, data = dat)
+  bet0[i] = mod$coef[1]
+  bet1[i] = mod$coef[2]
+}
+paste("correlacion para altura :", round(cor( beta0, beta1),2), " correlacion para diametro :",round( cor( bet0, bet1),2), sep = "")
+```
+```{r graficos}
+ 
+with( base, lattice::xyplot( altura ~ n_med, group = medida, ylab="Altura de la planta",type="r", main = "Altura"))
+lattice::xyplot( beta1 ~ beta0, type = c("r","p"), auto.key = T)
+
+with( base, lattice::xyplot( diametro ~ n_med, group = medida, ylab="Diametro de la planta",type="r", main = "Diametro"))
+lattice::xyplot( bet1 ~ bet0, type = c("r","p"), auto.key = T)
+```
+
+
+Interaccion de las pendientes parece ser importante porque cambia para algunas plantas
+
+
+El modelos inicial es: 
+$$$$
+
+```{r evaluar correlacion}
+options(contrasts=c("contr.sum","contr.poly"))
+mod1 = lme4::lmer( altura ~ n_med*tratamiento + (1+tratamiento|medida) , REML = F, data = base)
+mod2 = lme4::lmer( altura ~ n_med*tratamiento + (1|medida) + (0+tratamiento|medida) , REML = F, data = base)
+anova( mod1, mod2)
+```
+
+Preguntas
+1- Seria importante quitar los 0s de la primera medida, pues no germinaron?
+2- Hacer dos analisis o solo uno? Tenemos dos respuestas
+3- n_med necesita ser numerica o categorica?
+4- Falta H3mes
