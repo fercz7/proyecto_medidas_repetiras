@@ -35,10 +35,10 @@ paste("correlacion para altura :", round(cor( beta0, beta1),2), " correlacion pa
 ```
 ```{r graficos}
  
-with( base, lattice::xyplot( altura ~ n_med, group = medida, ylab="Altura de la planta",type="r", main = "Altura"))
+with( base, lattice::xyplot( altura ~ n_med|medida, ylab="Altura de la planta",type = c("r","p"), main = "Altura"))
 lattice::xyplot( beta1 ~ beta0, type = c("r","p"), auto.key = T)
 
-with( base, lattice::xyplot( diametro ~ n_med, group = medida, ylab="Diametro de la planta",type="r", main = "Diametro"))
+with( base, lattice::xyplot( diametro ~ n_med| medida, ylab="Diametro de la planta",type=c("r","p"), main = "Diametro"))
 lattice::xyplot( bet1 ~ bet0, type = c("r","p"), auto.key = T)
 ```
 
@@ -51,13 +51,13 @@ $$$$
 
 ```{r evaluar correlacion}
 options(contrasts=c("contr.sum","contr.poly"))
-mod1 = lme4::lmer( altura ~ n_med*tratamiento + (1+tratamiento|medida) , REML = F, data = base)
-mod2 = lme4::lmer( altura ~ n_med*tratamiento + (1|medida) + (0+tratamiento|medida) , REML = F, data = base)
+mod1 = lme4::lmer( altura ~ n_med*tratamiento + (1+n_med|medida) , REML = F, data = base)
+mod2 = lme4::lmer( altura ~ n_med*tratamiento + (1|medida) + (0+n_med|medida) , REML = F, data = base)
 anova( mod1, mod2)
+
 ```
 
 Preguntas
-1- Seria importante quitar los 0s de la primera medida, pues no germinaron?
-2- Hacer dos analisis o solo uno? Tenemos dos respuestas
-3- n_med necesita ser numerica o categorica?
-4- Falta H3mes
+1- Seria importante quitar los 0s de la primera medida, pues no germinaron? Listo
+2- Hacer dos analisis o solo uno? Tenemos dos respuestas Listo
+3- n_med necesita ser numerica o categorica? Listo
