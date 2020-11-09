@@ -1,0 +1,13 @@
+---
+title: "borrar"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+$t$ corresponde al tiempo en dias.
+$\tau_j$ corresponde al efecto del tratamiento j.
+$\gamma_{\tau_j,t}$ corresponde a la interaccion entre tratamientos y tiempo
+ 
