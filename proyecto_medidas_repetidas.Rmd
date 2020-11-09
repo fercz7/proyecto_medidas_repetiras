@@ -20,14 +20,14 @@ beta0=beta1=c()
 ind = levels( base$medida)
 for(i in 1: length( ind) ) {
   dat = base %>% filter( medida == ind[i]) 
-  mod = lm( altura ~ n_med, data = dat)
+  mod = lm( altura ~ dia, data = dat)
   beta0[i] = mod$coef[1]
   beta1[i] = mod$coef[2]
 }
 bet0=bet1=c()
 for(i in 1: length( ind) ) {
   dat = base %>% filter( medida == ind[i]) 
-  mod = lm( diametro ~ n_med, data = dat)
+  mod = lm( diametro ~ dia, data = dat)
   bet0[i] = mod$coef[1]
   bet1[i] = mod$coef[2]
 }
@@ -35,11 +35,15 @@ paste("correlacion para altura :", round(cor( beta0, beta1),2), " correlacion pa
 ```
 ```{r graficos}
  
-with( base, lattice::xyplot( altura ~ n_med|medida, ylab="Altura de la planta",type = c("r","p"), main = "Altura"))
+with( base, lattice::xyplot( altura ~ dia|medida, ylab="Altura de la planta",type = c("r","p"), main = "Altura"))
 lattice::xyplot( beta1 ~ beta0, type = c("r","p"), auto.key = T)
 
-with( base, lattice::xyplot( diametro ~ n_med| medida, ylab="Diametro de la planta",type=c("r","p"), main = "Diametro"))
+with( base, lattice::xyplot( diametro ~ dia| medida, ylab="Diametro de la planta",type=c("r","p"), main = "Diametro"))
 lattice::xyplot( bet1 ~ bet0, type = c("r","p"), auto.key = T)
+```
+```{r}
+with( base, lattice::xyplot( log( altura + 1 ) ~ dia|medida, ylab="Altura de cada planta ",type = c("r","p"), main = "Altura"))
+with( base, lattice::xyplot( altura ~ dia, groups = medida, ylab="Pendiente por planta",type = c("r"), main = "Altura"))
 ```
 
 
@@ -51,8 +55,8 @@ $$$$
 
 ```{r evaluar correlacion}
 options(contrasts=c("contr.sum","contr.poly"))
-mod1 = lme4::lmer( altura ~ n_med*tratamiento + (1+n_med|medida) , REML = F, data = base)
-mod2 = lme4::lmer( altura ~ n_med*tratamiento + (1|medida) + (0+n_med|medida) , REML = F, data = base)
+mod1 = lme4::lmer( altura ~ dia*tratamiento + (1+dia|medida) , REML = F, data = base)
+mod2 = lme4::lmer( altura ~ dia*tratamiento + (1|medida) + (0+dia|medida) , REML = F, data = base)
 anova( mod1, mod2)
 
 ```
@@ -60,4 +64,4 @@ anova( mod1, mod2)
 Preguntas
 1- Seria importante quitar los 0s de la primera medida, pues no germinaron? Listo
 2- Hacer dos analisis o solo uno? Tenemos dos respuestas Listo
-3- n_med necesita ser numerica o categorica? Listo
+3- dia necesita ser numerica o categorica? Listo
