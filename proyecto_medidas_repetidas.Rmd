@@ -11,6 +11,11 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyr)
 library(dplyr)
 load("germinacion.Rdata")
+
+vacios = names(which(table(base$altura,base$medida)[1,]>1))
+
+base2 = base[base$medida%in%vacios==F,]
+length(unique(base2$medida))
 ```
 
 Se usa un modelo normal ya que si se analiza la alturo o el diametro, son medidas continuas por lo que un modelo con respuesta condicional normal es adecuado
@@ -35,14 +40,14 @@ paste("correlacion para altura :", round(cor( beta0, beta1),2), " correlacion pa
 ```
 ```{r graficos}
  
-with( base, lattice::xyplot( altura ~ dia|medida, ylab="Altura de la planta",type = c("r","p"), main = "Altura"))
+with( base2, lattice::xyplot( altura ~ dia|medida, ylab="Altura de la planta",type = c("r","p"), main = "Altura"))
 lattice::xyplot( beta1 ~ beta0, type = c("r","p"), auto.key = T)
 
-with( base, lattice::xyplot( diametro ~ dia| medida, ylab="Diametro de la planta",type=c("r","p"), main = "Diametro"))
+with( base2, lattice::xyplot( diametro ~ dia| medida, ylab="Diametro de la planta",type=c("r","p"), main = "Diametro"))
 lattice::xyplot( bet1 ~ bet0, type = c("r","p"), auto.key = T)
 ```
 ```{r}
-with( base, lattice::xyplot( log( altura + 1 ) ~ dia|medida, ylab="Altura de cada planta ",type = c("r","p"), main = "Altura"))
+with( base, lattice::xyplot( altura ~ dia|medida, ylab="Altura de cada planta ",type = c("r","p"), main = "Altura"))
 with( base, lattice::xyplot( altura ~ dia, groups = medida, ylab="Pendiente por planta",type = c("r"), main = "Altura"))
 ```
 
