@@ -70,3 +70,67 @@ Preguntas
 1- Seria importante quitar los 0s de la primera medida, pues no germinaron? Listo
 2- Hacer dos analisis o solo uno? Tenemos dos respuestas Listo
 3- dia necesita ser numerica o categorica? Listo
+
+
+
+############## no voy a borrar nada porque no se como funciona esto jejeps
+
+```{r leer base}
+library(tidyr)
+library(dplyr)
+load("germinacion.Rdata")
+
+vacios = names(which(table(base$altura,base$planta)[1,]>1))
+
+base2 = base[base$planta%in%vacios==F,]
+length(unique(base2$planta))
+attach(base2)
+```
+
+```{r Regresion para cada planta}
+beta0=beta1=c()
+ind=as.numeric(names(table(base2$planta))) #esto no sirve aun sigue saliendo que son 40 y no 33.
+for(i in 1:33) {
+mod=lm(altura~dia,base2[planta==ind[i],])
+beta0[i]=mod$coef[1]
+beta1[i]=mod$coef[2]
+}
+```
+
+```{r graficos}
+library(lattice)
+xyplot(altura~dia,group=planta, ylab="altura",type="r")
+
+plot(beta1,beta0,pch=18)
+abline(lm(beta0~beta1))
+cor(beta0,beta1)
+```
+
+```{r Prueba correlacion entre b0 y b1}
+#Creo que los modelos serian algo así porque tenemos dos factores pero no se
+
+library(lme4)
+options(contrasts=c("contr.sum","contr.poly"))
+mod1 = lme4::lmer( altura ~ dia*riego*hongos + (1+dia|planta) , REML = F, data = base)
+mod2 = lme4::lmer( altura ~ dia*riego*hongos + (1|planta) + (0+dia|planta) , REML = F, data = base)
+anova( mod1, mod2)
+```
+
+```{r Prueba de igualdad de pendientes}
+mod3=lmer(distancia~edad1*sexo+(1|sujeto),REML=F)
+anova(mod3,mod2)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
