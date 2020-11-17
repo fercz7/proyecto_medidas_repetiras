@@ -11,12 +11,17 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyr)
 library(dplyr)
 load("germinacion.Rdata")
+negat
+vacios = names(which(table(base$altura,base$planta)[1,]>1))
+`%notin%` <- Negate(`%in%`)
 
-vacios = names(which(table(base$altura,base$medida)[1,]>1))
-
-base2 = base[base$medida%in%vacios==F,]
-length(unique(base2$medida))
+base2 <- base %>% filter( planta %notin% vacios) 
+#base3 = base[base$planta%in%vacios==F,]
+#length(unique(base2$medida))
 ```
+
+
+
 
 Se usa un modelo normal ya que si se analiza la alturo o el diametro, son medidas continuas por lo que un modelo con respuesta condicional normal es adecuado
 
