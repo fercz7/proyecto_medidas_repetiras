@@ -1,6 +1,8 @@
 ---
 title: "medidas repetidas"
 output: html_document
+editor_options: 
+  chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
@@ -11,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyr)
 library(dplyr)
 load("germinacion.Rdata")
-negat
+#negat
 vacios = names(which(table(base$altura,base$planta)[1,]>1))
 `%notin%` <- Negate(`%in%`)
 
@@ -27,16 +29,16 @@ Se usa un modelo normal ya que si se analiza la alturo o el diametro, son medida
 
 ```{r ver correlacion visualmente}
 beta0=beta1=c()
-ind = levels( base$medida)
+ind = unique( base2$planta)
 for(i in 1: length( ind) ) {
-  dat = base %>% filter( medida == ind[i]) 
+  dat = base2 %>% filter( planta == ind[i]) 
   mod = lm( altura ~ dia, data = dat)
   beta0[i] = mod$coef[1]
   beta1[i] = mod$coef[2]
 }
 bet0=bet1=c()
 for(i in 1: length( ind) ) {
-  dat = base %>% filter( medida == ind[i]) 
+  dat = base2 %>% filter( planta == ind[i]) 
   mod = lm( diametro ~ dia, data = dat)
   bet0[i] = mod$coef[1]
   bet1[i] = mod$coef[2]
@@ -45,15 +47,17 @@ paste("correlacion para altura :", round(cor( beta0, beta1),2), " correlacion pa
 ```
 ```{r graficos}
  
-with( base2, lattice::xyplot( altura ~ dia|medida, ylab="Altura de la planta",type = c("r","p"), main = "Altura"))
+with( base2, lattice::xyplot( altura ~ dia|planta, ylab="Altura de la planta",type = c("r","p"), main = "Altura"))
 lattice::xyplot( beta1 ~ beta0, type = c("r","p"), auto.key = T)
 
-with( base2, lattice::xyplot( diametro ~ dia| medida, ylab="Diametro de la planta",type=c("r","p"), main = "Diametro"))
+with( base2, lattice::xyplot( diametro ~ dia| planta, ylab="Diametro de la planta",type=c("r","p"), main = "Diametro"))
 lattice::xyplot( bet1 ~ bet0, type = c("r","p"), auto.key = T)
 ```
 ```{r}
-with( base, lattice::xyplot( altura ~ dia|medida, ylab="Altura de cada planta ",type = c("r","p"), main = "Altura"))
-with( base, lattice::xyplot( altura ~ dia, groups = medida, ylab="Pendiente por planta",type = c("r"), main = "Altura"))
+with( base2, lattice::xyplot( altura ~ dia|planta, ylab="Altura de cada planta ",type = c("r","p"), main = "Altura"))
+with( base2, lattice::xyplot( altura ~ dia, groups = planta, ylab="Pendiente por planta para altura",type = c("r"), main = "Altura"))
+with( base2, lattice::xyplot( diametro ~ dia|planta, ylab="diametro de cada planta ",type = c("r","p"), main = "Altura"))
+with( base2, lattice::xyplot( diametro ~ dia, groups = planta, ylab="Pendiente por planta para diametro",type = c("r"), main = "Altura"))
 ```
 
 
@@ -61,75 +65,36 @@ Interaccion de las pendientes parece ser importante porque cambia para algunas p
 
 
 El modelos inicial es: 
-$$$$
+$$y = \mu + \alpha_i+ \delta_j + \gamma_{ \alpha_i, \delta_j}+\beta_1t+\beta_{0,k}+\beta_{1,k}+e_{i,j,k}$$
+falta interaccion de tiempo con los 
 
-```{r evaluar correlacion}
+
+
+
+
+
+```{r Prueba correlacion entre b0 y b1}
 options(contrasts=c("contr.sum","contr.poly"))
-mod1 = lme4::lmer( altura ~ dia*tratamiento + (1+dia|medida) , REML = F, data = base)
-mod2 = lme4::lmer( altura ~ dia*tratamiento + (1|medida) + (0+dia|medida) , REML = F, data = base)
-anova( mod1, mod2)
+mod1 = lme4::lmer( altura ~ dia+riego+hongos+dia*riego+riego*hongos + (1+dia|planta) , REML = F, data = base2)
+mod2 = lme4::lmer( altura ~ dia+riego+hongos+dia*riego+riego*hongos + (1|planta) + (0+dia|planta) , REML = F, data = base2)
+anova( mod1, mod2, test = "LRT")
+```
+No se rechaza la hipotesis nula, por lo que no hay correlacion entre pendiente e intercepto por sujeto, se  usa el mod2.
 
+Ahora se quiere verificar si se puede asumir que todos las plantas tienen la misma pendiente.
+```{r}
+mod3 = lme4::lmer( altura ~ dia+riego+hongos+dia*riego+riego*hongos + (1|planta), REML = F, data = base2)
+anova( mod2, mod3, test = "LRT")
 ```
 
-Preguntas
-1- Seria importante quitar los 0s de la primera medida, pues no germinaron? Listo
-2- Hacer dos analisis o solo uno? Tenemos dos respuestas Listo
-3- dia necesita ser numerica o categorica? Listo
+Al comparar los dos modelos se obtiene una diferencia de las dos deviancias
+de 0, con 1 grado de libertad y una probabilidad asociada P = 1. Por lo tanto, se concluye que los sujetos  tienen la misma pendiente
+y se prefiere el mod3.
 
-
-
-############## no voy a borrar nada porque no se como funciona esto jejeps
-
-```{r leer base}
-library(tidyr)
-library(dplyr)
-load("germinacion.Rdata")
-
-vacios = names(which(table(base$altura,base$planta)[1,]>1))
-
-base2 = base[base$planta%in%vacios==F,]
-length(unique(base2$planta))
-attach(base2)
+```{r}
+t = summary( mod3)
+t
 ```
-
-```{r Regresion para cada planta}
-beta0=beta1=c()
-ind=as.numeric(names(table(base2$planta))) #esto no sirve aun sigue saliendo que son 40 y no 33.
-for(i in 1:33) {
-mod=lm(altura~dia,base2[planta==ind[i],])
-beta0[i]=mod$coef[1]
-beta1[i]=mod$coef[2]
-}
-```
-
-```{r graficos}
-library(lattice)
-xyplot(altura~dia,group=planta, ylab="altura",type="r")
-
-plot(beta1,beta0,pch=18)
-abline(lm(beta0~beta1))
-cor(beta0,beta1)
-```
-
-```{r Prueba correlacion entre b0 y b1}
-#Creo que los modelos serian algo así porque tenemos dos factores pero no se
-
-library(lme4)
-options(contrasts=c("contr.sum","contr.poly"))
-mod1 = lme4::lmer( altura ~ dia*riego*hongos + (1+dia|planta) , REML = F, data = base)
-mod2 = lme4::lmer( altura ~ dia*riego*hongos + (1|planta) + (0+dia|planta) , REML = F, data = base)
-anova( mod1, mod2)
-```
-
-```{r Prueba de igualdad de pendientes}
-mod3=lmer(distancia~edad1*sexo+(1|sujeto),REML=F)
-anova(mod3,mod2)
-```
-
-
-
-
-
 
 
 
