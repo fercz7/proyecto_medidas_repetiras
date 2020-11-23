@@ -92,15 +92,35 @@ de 0, con 1 grado de libertad y una probabilidad asociada P = 1. Por lo tanto, s
 y se prefiere el mod3.
 
 ```{r}
-t = summary( mod3)
-t
+summary( mod3)
+anova( mod3)
 ```
 
+Preguntar, la parte fija se hacen pruebas con F o verosimilitud?
 
 
 
 
+```{r Prueba correlacion entre b0 y b1}
+options(contrasts=c("contr.sum","contr.poly"))
+mod1g = lme4::lmer( diametro ~ dia+riego+hongos+dia*riego+riego*hongos + (1+dia|planta) , REML = F, data = base2)
+mod2g = lme4::lmer( diametro ~ dia+riego+hongos+dia*riego+riego*hongos + (1|planta) + (0+dia|planta) , REML = F, data = base2)
+anova( mod1g, mod2g, test = "LRT")
+```
+No se rechaza la hipotesis nula, por lo que no hay correlacion entre pendiente e intercepto por sujeto, se  usa el mod2.
 
+Ahora se quiere verificar si se puede asumir que todos las plantas tienen la misma pendiente.
+```{r}
+mod3g = lme4::lmer( diametro ~ dia+riego+hongos+dia*riego+riego*hongos + (1|planta), REML = F, data = base2)
+anova( mod2g, mod3g, test = "LRT")
+```
 
+Al comparar los dos modelos se obtiene una diferencia de las dos deviancias
+de ~9, con 1 grado de libertad y una probabilidad asociada P = 0.003. Por lo tanto, se concluye que los sujetos  no tienen la misma pendiente y se prefiere el mod2g.
+
+```{r}
+summary( mod2g)
+anova( mod2g)
+```
 
 
