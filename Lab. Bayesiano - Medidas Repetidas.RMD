@@ -1,0 +1,238 @@
+---
+title: "Laboratorio Bayesiano - Medidas Repetidas"
+author: "Ricardo Alvarado B."
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+# Ortodoncia
+
+Se realizó un estudio para dar seguimiento al crecimiento óseo de la maxila o mandíbula de 27 niños (16 hombres y 11 mujeres) desde los 8 a los 14 años.  Cada dos años se midió la distancia entre la pituitaria y la escotadura pterygomaxilar, dos puntos que son fácilmente identificados con rayos X. Esta distancia se utiliza para conocer el grado de maduración esquelética del individuo y está medida en milímetros.  Se compara el ritmo de crecimiento de esta distancia entre hombres y mujeres.
+
+# Ejercicios
+
+1. Cargue las librerías *rstan* y *lme4*, y use los procesadores en paralelo.
+
+```{r}
+#install.packages("rtools")
+
+library(rstan)
+library(lme4)
+#install.packages("rtools")
+```
+
+
+2. Abra el archivo `ortodoncia.Rdata`.  Primero se tiene que hacer una nueva variable llamada *edad1=edad-8*.
+
+```{r}
+load("ortodoncia.Rdata")
+base$edad1 = base$edad-8
+```
+
+
+3. Estime un modelo mixto con lmer en la librería `lme4` que incluya interacción entre *edad1* y *sexo*. Además que incluya los interceptos y pendientes aleatorias de forma independiente.
+
+```{r}
+mod1 = lmer(distancia~edad1*sexo+(1|sujeto)+(0+edad1|sujeto), data = base )
+```
+
+- incluimos la interacción de edad1 y sexo como factores fijos.
+- Los sujetos corresponden a la parte aleatoria.
+- Por otra parte, queremos ver si hay mejoría del factor aleatorio con base en días, entonces incluimos sujeto dentro de días.
+- De la misma forma, en este modelo asumimos no hay correlación entre interceptos y pendientes. (notese que en otros casos haríamos la prueba)
+
+## 4. Extraiga la matriz de estructura de la parte aleatoria y llámela xa.  Para extraer esta matriz puede usar: `t(as.matrix(attributes(mod)$pp$Zt))`. 
+
+   + Coloque *xa* en un *data.frame* llamado *dat.a*. Luego redefina *dat.a* como una lista.  Observe cuidadosamente el contenido de *xa*.  
+
+   + Observe los nombres de la lista. Cambie los nombres.
+
+```{r}
+xa  = t(as.matrix(attributes(mod1)$pp$Zt)) #veamos que trae dos veces el nombre de las variables. En la primera me indica las filas donde está la persona. En la segunda simplemente multiplica esos indicadores por edad, entonces me indica la edad(o momento) de la medicion
+#ya no habría que meter edad para la primera
+length(levels(base$sujeto))
+
+xa = xa[,1:27]
+dat.a = as.list(as.data.frame(xa))
+#names(dat.a)[28:54] = paste("E",names(dat.a)[28:54],sep = "")
+```
+
+
+## Extraiga la matriz de estructura de la parte fija, colóquela en un *data.frame* llamado *dat.f* y también defínalo como una lista.
+
++ Observe los nombres de la lista. Cambie los nombres.
+
+```{r}
+dat.f = as.list(as.data.frame(model.matrix(mod1)))
+names(dat.f) = c("Intercepto","edad1","SexoM","edadSexoM")
+```
+
+
++ Combine las dos listas poniendo primero la parte fija y luego la parte aleatoria y llame a la nueva lista *dat*.
+
+
+```{r}
+dat = c(dat.f, dat.a)
+```
+
+
++ Agregue 3 elementos a las lista: la variable respuesta (Y), el número de casos (N) y el número individuos (p).
+
+```{r}
+dat$Y = base$distancia
+dat$N = length(base$distancia)
+dat$p = length(levels(base$sujeto))
+
+names(dat)
+
+```
+
+
+3. Cambie el siguiente código para definir un modelo en *stan*. El objeto resultante se va a almacenar en *stan.mod1*:
+
+```{r}
+stan.mod1 = " 
+   data {
+      int<lower=0> N;
+      int<lower=0> p;
+      
+      real Y[N];
+    
+      // Variables de la parte sistemática
+      
+      int <lower=0, upper=1> intercepto[N]; 
+      real edad[N]; // beta1
+      int <lower=0, upper=1> sexoM[N];
+      real edadsexoM[N];
+      int <lower=0, upper=1> F01[N];
+      int <lower=0, upper=1> F02[N];
+      int <lower=0, upper=1> F03[N];
+      int <lower=0, upper=1> F04[N];
+      int <lower=0, upper=1> F05[N];
+      int <lower=0, upper=1> F06[N];
+      int <lower=0, upper=1> F07[N];
+      int <lower=0, upper=1> F08[N];
+      int <lower=0, upper=1> F09[N];
+      int <lower=0, upper=1> F10[N];
+      int <lower=0, upper=1> F11[N];
+      int <lower=0, upper=1> M01[N];
+      int <lower=0, upper=1> M02[N];
+      int <lower=0, upper=1> M03[N];
+      int <lower=0, upper=1> M04[N];
+      int <lower=0, upper=1> M05[N];
+      int <lower=0, upper=1> M06[N];
+      int <lower=0, upper=1> M07[N];
+      int <lower=0, upper=1> M08[N];
+      int <lower=0, upper=1> M09[N];
+      int <lower=0, upper=1> M10[N];
+      int <lower=0, upper=1> M11[N];
+      int <lower=0, upper=1> M12[N];
+      int <lower=0, upper=1> M13[N];
+      int <lower=0, upper=1> M14[N];
+      int <lower=0, upper=1> M15[N];
+      int <lower=0, upper=1> M16[N];
+
+ }
+ 
+   parameters {
+      real beta0;
+      real beta1;
+      real tau;
+      real delta;
+      real beta0i[p];
+      real beta1i[p];
+      real<lower=0> sigma0;         
+      real<lower=0> sigma1;      
+      real<lower=0> sigma_error;       
+  }
+ 
+ 
+   transformed parameters  {
+      // Media condicional
+      real mu[N];
+ 
+      for (i in 1:N) {
+         mu[i] = beta0 + beta1*edad[i]+tau*sexoM[i]+
+             delta*edad[i]*sexoM[i]+
+             beta0i[1]*F01[i]+
+             beta0i[2]*F02[i]+
+             beta0i[3]*F03[i]+
+             beta0i[4]*F04[i]+
+             beta0i[5]*F05[i]+
+             beta0i[6]*F06[i]+
+             beta0i[7]*F07[i]+
+             beta0i[8]*F08[i]+
+             beta0i[9]*F09[i]+
+             beta0i[10]*F10[i]+
+             beta0i[11]*F11[i]+
+             beta0i[12]*M01[i]+
+             beta0i[13]*M02[i]+
+             beta0i[14]*M03[i]+
+             beta0i[15]*M04[i]+
+             beta0i[16]*M05[i]+
+             beta0i[17]*M06[i]+
+             beta0i[18]*M07[i]+
+             beta0i[19]*M08[i]+
+             beta0i[20]*M09[i]+
+             beta0i[21]*M10[i]+
+             beta0i[22]*M11[i]+
+             beta0i[23]*M12[i]+
+             beta0i[24]*M13[i]+
+             beta0i[25]*M14[i]+
+             beta0i[26]*M15[i]+
+             beta0i[27]*M16[i]+
+             beta1i[1]*F01[i]*edad[i]+
+             beta1i[2]*F02[i]*edad[i]+
+             beta1i[3]*F03[i]*edad[i]+
+             beta1i[4]*F04[i]*edad[i]+
+             beta1i[5]*F05[i]*edad[i]+
+             beta1i[6]*F06[i]*edad[i]+
+             beta1i[7]*F07[i]*edad[i]+
+             beta1i[8]*F08[i]*edad[i]+
+             beta1i[9]*F09[i]*edad[i]+
+             beta1i[10]*F10[i]*edad[i]+
+             beta1i[11]*F11[i]*edad[i]+
+             beta1i[12]*M01[i]*edad[i]+
+             beta1i[13]*M02[i]*edad[i]+
+             beta1i[14]*M03[i]*edad[i]+
+             beta1i[15]*M04[i]*edad[i]+
+             beta1i[16]*M05[i]*edad[i]+
+             beta1i[17]*M06[i]*edad[i]+
+             beta1i[18]*M07[i]*edad[i]+
+             beta1i[19]*M08[i]*edad[i]+
+             beta1i[20]*M09[i]*edad[i]+
+             beta1i[21]*M10[i]*edad[i]+
+             beta1i[22]*M11[i]*edad[i]+
+             beta1i[23]*M12[i]*edad[i]+
+             beta1i[24]*M13[i]*edad[i]+
+             beta1i[25]*M14[i]*edad[i]+
+             beta1i[26]*M15[i]*edad[i]+
+             beta1i[27]*M16[i]*edad[i];           
+      }
+   }
+ 
+   model {
+      beta0i ~ normal(0, sigma0);  
+      beta1i ~ normal(0, sigma1);  
+      Y ~ normal(mu, sigma_error);   
+ }
+"
+```
+
+
+
+
+```{r}
+stanfit1 = stan(
+   model_code = stan.mod1,
+   data = dat,
+   chains = 1,
+   iter = 100,
+   thin = 1,
+   cores = 2,
+   seed = 1234
+   
+)
+```
+
