@@ -91,14 +91,17 @@ Al comparar los dos modelos se obtiene una diferencia de las dos deviancias
 de 0, con 1 grado de libertad y una probabilidad asociada P = 1. Por lo tanto, se concluye que los sujetos  tienen la misma pendiente
 y se prefiere el mod3.
 
+Ahora se prueban las interacciones
 ```{r}
-summary( mod3)
-anova( mod3)
+mod4 = lme4::lmer( altura ~ dia+riego+hongos+dia*riego + (1|planta), REML = F, data = base2)
+anova( mod4, mod3, test = "LRT")
 ```
-
-Preguntar, la parte fija se hacen pruebas con F o verosimilitud?
-
-
+No se rechaza la hipotesis, se prefiere mod 4
+```{r}
+mod5 = lme4::lmer( altura ~ dia+riego+hongos + (1|planta), REML = F, data = base2)
+anova( mod5, mod4, test = "LRT")
+```
+Se rechaza la hipotesis, se mantiene el mod4.
 
 
 ```{r Prueba correlacion entre b0 y b1}
@@ -119,8 +122,15 @@ Al comparar los dos modelos se obtiene una diferencia de las dos deviancias
 de ~9, con 1 grado de libertad y una probabilidad asociada P = 0.003. Por lo tanto, se concluye que los sujetos  no tienen la misma pendiente y se prefiere el mod2g.
 
 ```{r}
-summary( mod2g)
-anova( mod2g)
+mod4g = lme4::lmer( diametro ~ dia+riego+hongos+dia*riego+ (1|planta) + (0+dia|planta) , REML = F, data = base2)
+anova( mod4g, mod2g, test = "LRT")
 ```
+No se rechaza la hipotesis, se prefiere mod4g
 
+```{r}
+mod5g = lme4::lmer( diametro ~ dia+riego+hongos+ (1|planta) + (0+dia|planta) , REML = F, data = base2)
+anova( mod4g, mod5g, test = "LRT")
+```
+Se rechaza la hipotesis, se que prefiere mod4g
 
+Para ambos modelos se matiene el modelo 4.
