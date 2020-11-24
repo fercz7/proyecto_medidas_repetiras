@@ -76,6 +76,7 @@ falta interaccion de tiempo con los
 ```{r Prueba correlacion entre b0 y b1}
 options(contrasts=c("contr.sum","contr.poly"))
 mod1 = lme4::lmer( altura ~ dia+riego+hongos+dia*riego+riego*hongos + (1+dia|planta) , REML = F, data = base2)
+
 mod2 = lme4::lmer( altura ~ dia+riego+hongos+dia*riego+riego*hongos + (1|planta) + (0+dia|planta) , REML = F, data = base2)
 anova( mod1, mod2, test = "LRT")
 ```
@@ -102,6 +103,22 @@ mod5 = lme4::lmer( altura ~ dia+riego+hongos + (1|planta), REML = F, data = base
 anova( mod5, mod4, test = "LRT")
 ```
 Se rechaza la hipotesis, se mantiene el mod4.
+
+```{r}
+shapiro.test( residuals(mod1))
+car::leveneTest( residuals( mod2) ~ base2$planta)
+```
+
+
+
+
+
+
+
+
+
+
+
 
 
 ```{r Prueba correlacion entre b0 y b1}
