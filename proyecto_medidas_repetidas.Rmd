@@ -68,23 +68,38 @@ El modelos inicial es:
 $$y = \mu + \alpha_i+ \delta_j + \gamma_{ \alpha_i, \delta_j}+\beta_1t+\beta_{0,k}+\beta_{1,k}+e_{i,j,k}$$
 falta interaccion de tiempo con los 
 
+```{r}
+options(contrasts=c("contr.sum","contr.poly"))
+mod = lme4::lmer( altura ~ dia+riego+hongos+dia*riego+riego*hongos + (1+dia|planta) , REML = F, data = base2)
 
+```
 
+Supuestos
+```{r}
+shapiro.test( residuals(mod))
+car::leveneTest( residuals( mod) ~ base2$planta)
+fittedmod1 = predict( mod)
+plot( fittedmod1, residuals( mod))
+mody = lm( abs( residuals( mod) ) ~ fittedmod1)
+s = predict(mody)
+w = 1/(s^2)
+mod1 = lme4::lmer( altura ~ dia+riego+hongos+dia*riego+riego*hongos + (1+dia|planta) , REML = F, data = base2, weights = w)
+summary(mod1)
+ks.test( residuals(mod1), "pnorm", mean=0, sd=sqrt(1.747))
 
+```
+Ya se reparó la heterocedasticidad y sigua habiendo normalidad.
 
 
 ```{r Prueba correlacion entre b0 y b1}
-options(contrasts=c("contr.sum","contr.poly"))
-mod1 = lme4::lmer( altura ~ dia+riego+hongos+dia*riego+riego*hongos + (1+dia|planta) , REML = F, data = base2)
-
-mod2 = lme4::lmer( altura ~ dia+riego+hongos+dia*riego+riego*hongos + (1|planta) + (0+dia|planta) , REML = F, data = base2)
+mod2 = lme4::lmer( altura ~ dia+riego+hongos+dia*riego+riego*hongos + (1|planta) + (0+dia|planta) , REML = F, data = base2, weights = w)
 anova( mod1, mod2, test = "LRT")
 ```
 No se rechaza la hipotesis nula, por lo que no hay correlacion entre pendiente e intercepto por sujeto, se  usa el mod2.
 
 Ahora se quiere verificar si se puede asumir que todos las plantas tienen la misma pendiente.
 ```{r}
-mod3 = lme4::lmer( altura ~ dia+riego+hongos+dia*riego+riego*hongos + (1|planta), REML = F, data = base2)
+mod3 = lme4::lmer( altura ~ dia+riego+hongos+dia*riego+riego*hongos + (1|planta), REML = F, data = base2, weights = w)
 anova( mod2, mod3, test = "LRT")
 ```
 
@@ -94,26 +109,42 @@ y se prefiere el mod3.
 
 Ahora se prueban las interacciones
 ```{r}
-mod4 = lme4::lmer( altura ~ dia+riego+hongos+dia*riego + (1|planta), REML = F, data = base2)
+mod4 = lme4::lmer( altura ~ dia+riego+hongos+dia*riego + (1|planta), REML = F, data = base2, weights = w)
 anova( mod4, mod3, test = "LRT")
 ```
 No se rechaza la hipotesis, se prefiere mod 4
 ```{r}
-mod5 = lme4::lmer( altura ~ dia+riego+hongos + (1|planta), REML = F, data = base2)
+mod5 = lme4::lmer( altura ~ dia+riego+hongos + (1|planta), REML = F, data = base2, weights = w)
 anova( mod5, mod4, test = "LRT")
 ```
 Se rechaza la hipotesis, se mantiene el mod4.
 
+
+Modelo final
+
 ```{r}
-shapiro.test( residuals(mod1))
-car::leveneTest( residuals( mod2) ~ base2$planta)
+modaltura = mod4 = lme4::lmer( altura ~ dia+riego+hongos+dia*riego + (1|planta), REML = T, data = base2, weights = w)
 ```
 
 
 
 
-
-
+```{r}
+modgg = lme4::lmer( diametro ~ dia+riego+hongos+dia*riego+riego*hongos + (1+dia|planta) , REML = F, data = base2)
+shapiro.test( residuals(modgg))
+car::leveneTest( residuals( modgg) ~ base2$planta)
+fittedmod1 = predict( modgg)
+plot( fittedmod1, residuals( mod))
+mody = lm( abs( residuals( mod) ) ~ fittedmod1)
+s = predict(mody)
+wg = 1/(s^2)
+#mod1 = lme4::lmer( altura ~ dia+riego+hongos+dia*riego+riego*hongos + (1+dia|planta) , REML = F, data = base2, weights = wg)
+mod1g = lme4::lmer( diametro ~ dia+riego+hongos+dia*riego+riego*hongos + (1+dia|planta) , REML = F, data = base2, weights = wg)
+summary(mod1g)
+ks.test( residuals(mod1g), "pnorm", mean=0, sd=1.55069)
+car::qqPlot( residuals(mod1g))
+```
+Ya cumple con normalidad y se arregla la heterocedasticidad.
 
 
 
@@ -122,17 +153,17 @@ car::leveneTest( residuals( mod2) ~ base2$planta)
 
 
 ```{r Prueba correlacion entre b0 y b1}
-options(contrasts=c("contr.sum","contr.poly"))
-mod1g = lme4::lmer( diametro ~ dia+riego+hongos+dia*riego+riego*hongos + (1+dia|planta) , REML = F, data = base2)
-mod2g = lme4::lmer( diametro ~ dia+riego+hongos+dia*riego+riego*hongos + (1|planta) + (0+dia|planta) , REML = F, data = base2)
+#options(contrasts=c("contr.sum","contr.poly"))
+
+mod2g = lme4::lmer( diametro ~ dia+riego+hongos+dia*riego+riego*hongos + (1|planta) + (0+dia|planta) , REML = F, data = base2, weights = wg)
 anova( mod1g, mod2g, test = "LRT")
 ```
 No se rechaza la hipotesis nula, por lo que no hay correlacion entre pendiente e intercepto por sujeto, se  usa el mod2.
 
 Ahora se quiere verificar si se puede asumir que todos las plantas tienen la misma pendiente.
 ```{r}
-mod3g = lme4::lmer( diametro ~ dia+riego+hongos+dia*riego+riego*hongos + (1|planta), REML = F, data = base2)
-anova( mod2g, mod3g, test = "LRT")
+mod3g = lme4::lmer( diametro ~ dia+riego+hongos+dia*riego+riego*hongos + (1|planta), REML = F, data = base2, weights = wg)
+anova( mod1g, mod3g, test = "LRT")
 ```
 
 Al comparar los dos modelos se obtiene una diferencia de las dos deviancias

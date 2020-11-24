@@ -6,36 +6,6 @@ editor_options:
   chunk_output_type: inline
 ---
 
-```{r}
-library( dplyr)
-library(rstan)
-library(lme4)
-options(mc.cores = parallel::detectCores())
-rstan_options(auto_write = TRUE)
-load("germinacion.Rdata")
-
-vacios = names(which(table(base$altura,base$planta)[1,]>1))
-`%notin%` <- Negate(`%in%`)
-#1:40
-base2 <- base %>% filter( planta %notin% vacios) 
-#hay 33 plantas
-
-#base$edad1=base$edad-8 TENGO QUE HACERLO?
-```
-```{r}
-library( dplyr)
-library(rstan)
-library(lme4)
-options(mc.cores = parallel::detectCores())
-rstan_options(auto_write = TRUE)
-base = openxlsx::read.xlsx("base.xlsx")
-vacios = names(which(table(base$altura,base$planta)[1,]>1))
-`%notin%` <- Negate(`%in%`)
-#1:40
-base2 <- base %>% filter( planta %notin% vacios) 
-base2$planta = as.factor(base2$planta)
-levels(base2$planta)
-```
 
 3. Estime un modelo mixto con lmer en la librería `lme4` que incluya interacción entre *edad1* y *sexo*. Además que incluya los interceptos y pendientes aleatorias de forma independiente.
 
@@ -44,6 +14,7 @@ levels(base2$planta)
 mod4g = lme4::lmer( diametro ~ dia+riego+hongos+dia*riego+ (1|planta) + (0+dia|planta) , REML = F, data = base2)
 
 summary(mod4g)
+
 ```
 
 4. Extraiga la matriz de estructura de la parte aleatoria y llámela xa.  Para extraer esta matriz puede usar: `t(as.matrix(attributes(mod)$pp$Zt))`. 
@@ -275,5 +246,9 @@ stan.fit1 <- stan(
 ```{r}
 traceplot(stan.fit1, pars = c("beta0","beta1","sigma0","sigma1", "sigma_error"), inc_warmup = TRUE)
 traceplot(stan.fit1, pars = c("beta0","beta1","sigma0","sigma1", "sigma_error"), inc_warmup = FALSE)
+```
+
+```{r}
+print( stan.fit1)
 ```
 
