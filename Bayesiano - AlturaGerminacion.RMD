@@ -10,16 +10,44 @@ editor_options:
 3. Estime un modelo mixto con lmer en la librería `lme4` que incluya interacción entre *edad1* y *sexo*. Además que incluya los interceptos y pendientes aleatorias de forma independiente.
 
 (rho=0)
+
 ```{r}
-mod4g = lme4::lmer( diametro ~ dia+riego+hongos+dia*riego+ (1|planta) + (0+dia|planta) , REML = F, data = base2)
+library( dplyr)
+library(rstan)
+library(lme4)
+options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
+base = openxlsx::read.xlsx("base.xlsx")
+vacios = names(which(table(base$altura,base$planta)[1,]>1))
+`%notin%` <- Negate(`%in%`)
+#1:40
+base2 <- base %>% filter( planta %notin% vacios) 
+base2$planta = as.factor(base2$planta)
+levels(base2$planta)
+```
+```{r}
+options(contrasts=c("contr.sum","contr.poly"))
+mod = lme4::lmer( altura ~ dia+riego+hongos+dia*riego+riego*hongos + (1+dia|planta) , REML = F, data = base2)
 
-summary(mod4g)
+```
 
+Supuestos
+```{r}
+fittedmod1 = predict( mod)
+mody = lm( abs( residuals( mod) ) ~ fittedmod1)
+s = predict(mody)
+w = 1/(s^2)
+```
+
+
+```{r}
+modaltura = modaltura = lme4::lmer( altura ~ dia+riego+hongos+dia*riego + (1|planta), REML = T, data = base2, weights = w)
+summary( modaltura)
 ```
 
 4. Extraiga la matriz de estructura de la parte aleatoria y llámela xa.  Para extraer esta matriz puede usar: `t(as.matrix(attributes(mod)$pp$Zt))`. 
 ```{r}
-xa=t(as.matrix(attributes(mod4g)$pp$Zt))[,1:33]
+xa=t(as.matrix(attributes(modaltura)$pp$Zt))#[,1:33]
 ```
 
 + Coloque *xa* en un *data.frame* llamado *dat.a*. Luego redefina *dat.a* como una lista.  Observe cuidadosamente el contenido de *xa*.  
@@ -34,7 +62,7 @@ names(dat.a)
 
 + Extraiga la matriz de estructura de la parte fija, colóquela en un *data.frame* llamado *dat.f* y también defínalo como una lista.
 ```{r}
-dat.f=as.list(as.data.frame(model.matrix(mod4g)))
+dat.f=as.list(as.data.frame(model.matrix(modaltura)))
 names(dat.f)
 ```
 [1] "(Intercept)" "dia"         "riegoWW"     "hongosHMA+"  "dia:riegoWW"
@@ -57,10 +85,11 @@ dat$Y = base2$diametro
 dat$N = length(base2$diametro)
 dat$p = length(levels(base2$planta))
 names(dat)
-#dat
+summary(modaltura)
 ```
 
-
+Modelo que tenemos
+$$y=\mu+\beta t+\gamma_i+\omega_k+\alpha_{\gamma_i,\omega_k}+$$
 3. Cambie el siguiente código para definir un modelo en *stan*. El objeto resultante se va a almacenar en *stan.mod1*:
 
 ```{r}
