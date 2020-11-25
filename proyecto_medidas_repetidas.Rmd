@@ -28,23 +28,30 @@ base2 <- base %>% filter( planta %notin% vacios)
 Se usa un modelo normal ya que si se analiza la alturo o el diametro, son medidas continuas por lo que un modelo con respuesta condicional normal es adecuado
 
 ```{r ver correlacion visualmente}
-beta0=beta1=c()
-ind = unique( base2$planta)
-for(i in 1: length( ind) ) {
-  dat = base2 %>% filter( planta == ind[i]) 
-  mod = lm( altura ~ dia, data = dat)
+beta0 = beta1 = c()
+ind = unique(base2$planta)
+for (i in 1:length(ind)) {
+  dat = base2 %>% filter(planta == ind[i])
+  mod = lm(altura ~ dia, data = dat)
   beta0[i] = mod$coef[1]
   beta1[i] = mod$coef[2]
 }
-bet0=bet1=c()
-for(i in 1: length( ind) ) {
-  dat = base2 %>% filter( planta == ind[i]) 
-  mod = lm( diametro ~ dia, data = dat)
+bet0 = bet1 = c()
+for (i in 1:length(ind)) {
+  dat = base2 %>% filter(planta == ind[i])
+  mod = lm(diametro ~ dia, data = dat)
   bet0[i] = mod$coef[1]
   bet1[i] = mod$coef[2]
 }
-paste("correlacion para altura :", round(cor( beta0, beta1),2), " correlacion para diametro :",round( cor( bet0, bet1),2), sep = "")
+paste(
+  "correlacion para altura :",
+  round(cor(beta0, beta1), 2),
+  " correlacion para diametro :",
+  round(cor(bet0, bet1), 2),
+  sep = ""
+)
 ```
+
 ```{r graficos}
  
 with( base2, lattice::xyplot( altura ~ dia|planta, ylab="Altura de la planta",type = c("r","p"), main = "Altura"))
@@ -53,11 +60,12 @@ lattice::xyplot( beta1 ~ beta0, type = c("r","p"), auto.key = T)
 with( base2, lattice::xyplot( diametro ~ dia| planta, ylab="Diametro de la planta",type=c("r","p"), main = "Diametro"))
 lattice::xyplot( bet1 ~ bet0, type = c("r","p"), auto.key = T)
 ```
+
 ```{r}
 with( base2, lattice::xyplot( altura ~ dia|planta, ylab="Altura de cada planta ",type = c("r","p"), main = "Altura"))
 with( base2, lattice::xyplot( altura ~ dia, groups = planta, ylab="Pendiente por planta para altura",type = c("r"), main = "Altura"))
-with( base2, lattice::xyplot( diametro ~ dia|planta, ylab="diametro de cada planta ",type = c("r","p"), main = "Altura"))
-with( base2, lattice::xyplot( diametro ~ dia, groups = planta, ylab="Pendiente por planta para diametro",type = c("r"), main = "Altura"))
+with( base2, lattice::xyplot( diametro ~ dia|planta, ylab="diametro de cada planta ",type = c("r","p"), main = "Diametro"))
+with( base2, lattice::xyplot( diametro ~ dia, groups = planta, ylab="Pendiente por planta para diametro",type = c("r"), main = "Diametro"))
 ```
 
 
@@ -75,20 +83,48 @@ mod = lme4::lmer( altura ~ dia+riego+hongos+dia*riego+riego*hongos + (1+dia|plan
 ```
 
 Supuestos
+
+
+```{r Normalidad}
+shapiro.test(residuals(mod))
+car::qqPlot(residuals(mod),ylab ="Residuales",xlab="Cuantiles")
+shapiro.test(residuals(mod) )
+```
+
+
+
 ```{r}
-shapiro.test( residuals(mod))
-car::leveneTest( residuals( mod) ~ base2$planta)
-fittedmod1 = predict( mod)
-plot( fittedmod1, residuals( mod))
-mody = lm( abs( residuals( mod) ) ~ fittedmod1)
+car::leveneTest(residuals(mod) ~ base2$planta)
+
+fittedmod1 = predict(mod)
+
+plot(fittedmod1, residuals(mod))
+
+mody = lm(abs(residuals(mod)) ~ fittedmod1)
+
 s = predict(mody)
-w = 1/(s^2)
-mod1 = lme4::lmer( altura ~ dia+riego+hongos+dia*riego+riego*hongos + (1+dia|planta) , REML = F, data = base2, weights = w)
-summary(mod1)
-ks.test( residuals(mod1), "pnorm", mean=0, sd=sqrt(1.747))
+
+w = 1 / (s ^ 2)
 
 ```
+
+
 Ya se reparó la heterocedasticidad y sigua habiendo normalidad.
+
+```{r}
+
+mod1 = lme4::lmer(
+  altura ~ dia + riego + hongos + dia * riego + riego * hongos + (1 + dia |
+                                                                    planta) ,
+  REML = F,
+  data = base2,
+  weights = w
+)
+ks.test(residuals(mod1),
+        "pnorm",
+        mean = 0,
+        sd = sqrt(1.747))
+```
 
 
 ```{r Prueba correlacion entre b0 y b1}
